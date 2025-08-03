@@ -32,10 +32,28 @@ class BetterPlayerSubtitle {
 
   static BetterPlayerSubtitle _handle2LinesSubtitles(List<String> scanner) {
     try {
+      if (scanner.isEmpty || !scanner[0].contains(timerSeparator)) {
+        return BetterPlayerSubtitle._();
+      }
+
       final timeSplit = scanner[0].split(timerSeparator);
+      if (timeSplit.length != 2) {
+        return BetterPlayerSubtitle._();
+      }
+
       final start = _stringToDuration(timeSplit[0]);
       final end = _stringToDuration(timeSplit[1]);
-      final texts = scanner.sublist(1, scanner.length);
+      
+      if (start == const Duration() && end == const Duration()) {
+        return BetterPlayerSubtitle._();
+      }
+
+      List<String> texts = [];
+      if (scanner.length > 1) {
+        texts = scanner.sublist(1, scanner.length);
+      } else {
+        return BetterPlayerSubtitle._();
+      }
 
       return BetterPlayerSubtitle._(
         index: -1,
@@ -52,21 +70,44 @@ class BetterPlayerSubtitle {
   static BetterPlayerSubtitle _handle3LinesAndMoreSubtitles(
       List<String> scanner, bool isWebVTT) {
     try {
+      if (scanner.isEmpty) {
+        return BetterPlayerSubtitle._();
+      }
+      
       int? index = -1;
       List<String> timeSplit = [];
       int firstLineOfText = 0;
+      
       if (scanner[0].contains(timerSeparator)) {
         timeSplit = scanner[0].split(timerSeparator);
         firstLineOfText = 1;
       } else {
+        if (scanner.length < 2 || !scanner[1].contains(timerSeparator)) {
+          return BetterPlayerSubtitle._();
+        }
         index = int.tryParse(scanner[0]);
         timeSplit = scanner[1].split(timerSeparator);
         firstLineOfText = 2;
       }
 
+      if (timeSplit.length != 2) {
+        return BetterPlayerSubtitle._();
+      }
+
       final start = _stringToDuration(timeSplit[0]);
       final end = _stringToDuration(timeSplit[1]);
-      final texts = scanner.sublist(firstLineOfText, scanner.length);
+      
+      if (start == const Duration() && end == const Duration()) {
+        return BetterPlayerSubtitle._();
+      }
+
+      List<String> texts = [];
+      if (firstLineOfText < scanner.length) {
+        texts = scanner.sublist(firstLineOfText, scanner.length);
+      } else {
+        return BetterPlayerSubtitle._();
+      }
+
       return BetterPlayerSubtitle._(
           index: index, start: start, end: end, texts: texts);
     } on Exception catch (_) {
@@ -77,6 +118,10 @@ class BetterPlayerSubtitle {
 
   static Duration _stringToDuration(String value) {
     try {
+      if (value.trim().isEmpty) {
+        return const Duration();
+      }
+
       final valueSplit = value.split(" ");
       String componentValue;
 
@@ -100,11 +145,24 @@ class BetterPlayerSubtitle {
         return const Duration();
       }
 
+      final hours = int.tryParse(component[0]);
+      final minutes = int.tryParse(component[1]);
+      final seconds = int.tryParse(secsAndMillsSplit[0]);
+      final milliseconds = int.tryParse(secsAndMillsSplit[1]);
+
+      if (hours == null || minutes == null || seconds == null || milliseconds == null) {
+        return const Duration();
+      }
+
+      if (hours < 0 || minutes < 0 || minutes >= 60 || seconds < 0 || seconds >= 60 || milliseconds < 0) {
+        return const Duration();
+      }
+
       final result = Duration(
-        hours: int.tryParse(component[0])!,
-        minutes: int.tryParse(component[1])!,
-        seconds: int.tryParse(secsAndMillsSplit[0])!,
-        milliseconds: int.tryParse(secsAndMillsSplit[1])!,
+        hours: hours,
+        minutes: minutes,
+        seconds: seconds,
+        milliseconds: milliseconds,
       );
       return result;
     } on Exception catch (_) {

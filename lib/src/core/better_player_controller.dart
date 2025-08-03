@@ -382,39 +382,58 @@ class BetterPlayerController {
       }
       _asmsSegmentsLoading = true;
       final BetterPlayerSubtitlesSource? source = _betterPlayerSubtitlesSource;
+      
+      if (source == null || source.asmsSegments == null || source.asmsSegments!.isEmpty) {
+        _asmsSegmentsLoading = false;
+        return;
+      }
+
       final Duration loadDurationEnd = Duration(
           milliseconds: position.inMilliseconds +
               5 * (_betterPlayerSubtitlesSource?.asmsSegmentsTime ?? 5000));
 
       final segmentsToLoad = _betterPlayerSubtitlesSource?.asmsSegments
           ?.where((segment) {
-            return segment.startTime > position &&
-                segment.endTime < loadDurationEnd &&
-                !_asmsSegmentsLoaded.contains(segment.realUrl);
+            try {
+              return segment.startTime > position &&
+                  segment.endTime < loadDurationEnd &&
+                  !_asmsSegmentsLoaded.contains(segment.realUrl);
+            } catch (e) {
+              return false;
+            }
           })
           .map((segment) => segment.realUrl)
+          .where((url) => url.isNotEmpty)
           .toList();
 
       if (segmentsToLoad != null && segmentsToLoad.isNotEmpty) {
-        final subtitlesParsed =
-            await BetterPlayerSubtitlesFactory.parseSubtitles(
-                BetterPlayerSubtitlesSource(
-          type: _betterPlayerSubtitlesSource!.type,
-          headers: _betterPlayerSubtitlesSource!.headers,
-          urls: segmentsToLoad,
-        ));
+        try {
+          final subtitlesParsed =
+              await BetterPlayerSubtitlesFactory.parseSubtitles(
+                  BetterPlayerSubtitlesSource(
+            type: _betterPlayerSubtitlesSource!.type,
+            headers: _betterPlayerSubtitlesSource!.headers,
+            urls: segmentsToLoad,
+          ));
 
-        ///Additional check if current source of subtitles is same as source
-        ///used to start loading subtitles. It can be different when user
-        ///changes subtitles and there was already pending load.
-        if (source == _betterPlayerSubtitlesSource) {
-          subtitlesLines.addAll(subtitlesParsed);
+          ///Additional check if current source of subtitles is same as source
+          ///used to start loading subtitles. It can be different when user
+          ///changes subtitles and there was already pending load.
+          if (source == _betterPlayerSubtitlesSource) {
+            if (subtitlesParsed.isNotEmpty) {
+              subtitlesLines.addAll(subtitlesParsed);
+            }
+            _asmsSegmentsLoaded.addAll(segmentsToLoad);
+          }
+        } catch (e) {
+          BetterPlayerUtils.log("Failed to parse subtitle segments: $e");
           _asmsSegmentsLoaded.addAll(segmentsToLoad);
         }
       }
-      _asmsSegmentsLoading = false;
-    } on Exception catch (exception) {
+    } catch (exception) {
       BetterPlayerUtils.log("Load ASMS subtitle segments failed: $exception");
+    } finally {
+      _asmsSegmentsLoading = false;
     }
   }
 
