@@ -80,7 +80,8 @@ sealed class BetterPlayerHlsUtils {
           .parseString(Uri.parse(masterPlaylistUrl), data);
 
       if (parsedPlaylist is HlsMasterPlaylist) {
-        for (final Rendition element in parsedPlaylist.subtitles) {
+        for (int i = 0; i < parsedPlaylist.subtitles.length; i++) {
+          final Rendition element = parsedPlaylist.subtitles[i];
           final hlsSubtitle = await _parseSubtitlesPlaylist(element);
           if (hlsSubtitle != null) {
             subtitles.add(hlsSubtitle);

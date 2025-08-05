@@ -1223,6 +1223,43 @@ class BetterPlayerController {
     videoPlayerController!.setAudioTrack(audioTrack.label, audioTrack.id);
   }
 
+  ///Get all available audio tracks from current video source.
+  ///Works for both streaming (HLS/DASH) and container files (MP4/MKV).
+  Future<List<Map<String, dynamic>>> getAvailableAudioTracks() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getAudioTracks();
+  }
+
+
+  ///Get all available subtitle tracks from current video source.
+  ///Works for both streaming (HLS/DASH) and container files (MP4/MKV).
+  Future<List<Map<String, dynamic>>> getAvailableSubtitleTracks() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getSubtitleTracks();
+  }
+
+  ///Set subtitle track by index. Pass null to disable subtitles.
+  ///Works for embedded subtitles in container files (MP4/MKV).
+  void setSubtitleTrack(int? index) {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    videoPlayerController!.setSubtitleTrack(index);
+  }
+
+  ///Get current subtitle text at current playback position.
+  ///Returns the subtitle text that should be displayed now.
+  Future<String> getCurrentSubtitleText() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getCurrentSubtitleText();
+  }
+
   ///Enable or disable audio mixing with other sound within device.
   void setMixWithOthers(bool mixWithOthers) {
     if (videoPlayerController == null) {

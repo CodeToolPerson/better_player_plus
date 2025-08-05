@@ -159,6 +159,23 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('setAudio() has not been implemented.');
   }
 
+  Future<List<Map<String, dynamic>>> getAudioTracks(int? textureId) {
+    throw UnimplementedError('getAudioTracks() has not been implemented.');
+  }
+
+
+  Future<List<Map<String, dynamic>>> getSubtitleTracks(int? textureId) {
+    throw UnimplementedError('getSubtitleTracks() has not been implemented.');
+  }
+
+  Future<void> setSubtitleTrack(int? textureId, int? index) {
+    throw UnimplementedError('setSubtitleTrack() has not been implemented.');
+  }
+
+  Future<String> getCurrentSubtitleText(int? textureId) {
+    throw UnimplementedError('getCurrentSubtitleText() has not been implemented.');
+  }
+
   Future<void> setMixWithOthers(int? textureId, bool mixWithOthers) {
     throw UnimplementedError('setMixWithOthers() has not been implemented.');
   }
