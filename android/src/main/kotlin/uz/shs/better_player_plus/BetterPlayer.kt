@@ -32,6 +32,9 @@ import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
 import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mkv.MatroskaExtractor
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
+import androidx.media3.extractor.mp4.Mp4Extractor
 import io.flutter.plugin.common.EventChannel.EventSink
 import androidx.work.Data
 import androidx.media3.*
@@ -45,10 +48,13 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.Util
+import androidx.media3.common.text.CueGroup
+import androidx.media3.common.text.Cue
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.dash.DashMediaSource
@@ -102,6 +108,8 @@ internal class BetterPlayer(
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
 
+    private var currentSubtitleTextCache: String = ""
+
     init {
         val loadBuilder = DefaultLoadControl.Builder()
         loadBuilder.setBufferDurationsMs(
@@ -111,10 +119,41 @@ internal class BetterPlayer(
             this.customDefaultLoadControl.bufferForPlaybackAfterRebufferMs
         )
         loadControl = loadBuilder.build()
+
+        trackSelector.setParameters(
+            trackSelector.buildUponParameters()
+                .setForceHighestSupportedBitrate(false)
+                .setAllowMultipleAdaptiveSelections(true)
+                .build()
+        )
+
+        val renderersFactory = DefaultRenderersFactory(context)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+            .setEnableDecoderFallback(true)
+
         exoPlayer = ExoPlayer.Builder(context)
+            .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
             .build()
+
+        exoPlayer?.addListener(object : Player.Listener {
+            override fun onCues(cues: List<androidx.media3.common.text.Cue>) {
+                try {
+                    if (cues.isNotEmpty()) {
+                        val subtitleText = cues.joinToString("\n") { cue ->
+                            cue.text?.toString() ?: ""
+                        }
+                        currentSubtitleTextCache = subtitleText
+                    } else {
+                        currentSubtitleTextCache = ""
+                    }
+                } catch (exception: Exception) {
+                    currentSubtitleTextCache = ""
+                }
+            }
+        })
+
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
         setupVideoPlayer(eventChannel, textureEntry, result)
@@ -439,14 +478,23 @@ internal class BetterPlayer(
                     }
                 }.createMediaSource(mediaItem)
 
-            C.CONTENT_TYPE_OTHER -> ProgressiveMediaSource.Factory(
-                mediaDataSourceFactory,
-                DefaultExtractorsFactory()
-            ).apply {
+            C.CONTENT_TYPE_OTHER -> {
+                val extractorsFactory = DefaultExtractorsFactory()
+                    .setConstantBitrateSeekingEnabled(true)
+                    .setTsExtractorFlags(DefaultTsPayloadReaderFactory.FLAG_ENABLE_HDMV_DTS_AUDIO_STREAMS)
+                    .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
+
+                val factory = ProgressiveMediaSource.Factory(
+                    mediaDataSourceFactory,
+                    extractorsFactory
+                )
+
                 if (drmSessionManagerProvider != null) {
-                    setDrmSessionManagerProvider(drmSessionManagerProvider!!)
+                    factory.setDrmSessionManagerProvider(drmSessionManagerProvider!!)
                 }
-            }.createMediaSource(mediaItem)
+
+                factory.createMediaSource(mediaItem)
+            }
 
             else -> {
                 throw IllegalStateException("Unsupported type: $type")
@@ -677,36 +725,17 @@ internal class BetterPlayer(
                         continue
                     }
                     val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
-                    var hasElementWithoutLabel = false
-                    var hasStrangeAudioTrack = false
-                    for (groupIndex in 0 until trackGroupArray.length) {
-                        val group = trackGroupArray[groupIndex]
-                        for (groupElementIndex in 0 until group.length) {
-                            val format = group.getFormat(groupElementIndex)
-                            if (format.label == null) {
-                                hasElementWithoutLabel = true
-                            }
-                            if (format.id != null && format.id == "1/15") {
-                                hasStrangeAudioTrack = true
-                            }
-                        }
+
+                    if (index >= 0 && index < trackGroupArray.length) {
+                        setAudioTrack(rendererIndex, index)
+                        return
                     }
+
                     for (groupIndex in 0 until trackGroupArray.length) {
                         val group = trackGroupArray[groupIndex]
                         for (groupElementIndex in 0 until group.length) {
                             val label = group.getFormat(groupElementIndex).label
-                            if (name == label && index == groupIndex) {
-                                setAudioTrack(rendererIndex, groupIndex)
-                                return
-                            }
-
-                            ///Fallback option
-                            if (!hasStrangeAudioTrack && hasElementWithoutLabel && index == groupIndex) {
-                                setAudioTrack(rendererIndex, groupIndex)
-                                return
-                            }
-                            ///Fallback option
-                            if (hasStrangeAudioTrack && name == label) {
+                            if (name == label) {
                                 setAudioTrack(rendererIndex, groupIndex)
                                 return
                             }
@@ -724,17 +753,192 @@ internal class BetterPlayer(
         if (mappedTrackInfo != null) {
             val builder = trackSelector.parameters.buildUpon()
                 .setRendererDisabled(rendererIndex, false)
+                .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
                 .addOverride(
                     TrackSelectionOverride(
                         mappedTrackInfo.getTrackGroups(rendererIndex).get(groupIndex),
-                        mappedTrackInfo.getTrackGroups(rendererIndex)
-                            .indexOf(mappedTrackInfo.getTrackGroups(rendererIndex).get(groupIndex))
                     )
                 )
 
             trackSelector.setParameters(builder)
         }
     }
+
+    fun getAudioTracks(): List<Map<String, String>> {
+        val audioTracks = mutableListOf<Map<String, String>>()
+        var globalTrackId = 0
+        try {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+
+                for (i in 0 until mappedTrackInfo.rendererCount) {
+                    val type = mappedTrackInfo.getRendererType(i)
+                    val groups = mappedTrackInfo.getTrackGroups(i)
+                }
+                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                    val rendererType = mappedTrackInfo.getRendererType(rendererIndex)
+                    if (rendererType != C.TRACK_TYPE_AUDIO) {
+                        continue
+                    }
+                    val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
+                    for (groupIndex in 0 until trackGroupArray.length) {
+                        val group = trackGroupArray[groupIndex]
+                        for (trackIndex in 0 until group.length) {
+                            val format = group.getFormat(trackIndex)
+                            val track = mutableMapOf<String, String>()
+                            track["id"] = globalTrackId.toString()
+                            track["groupIndex"] = groupIndex.toString()
+                            track["trackIndex"] = trackIndex.toString()
+                            track["label"] = format.label ?: "Audio Track ${globalTrackId}"
+                            track["language"] = format.language ?: "unknown"
+                            track["mimeType"] = format.sampleMimeType ?: "unknown"
+                            track["url"] = ""
+                            audioTracks.add(track)
+                            globalTrackId++
+                        }
+                    }
+                }
+            }
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+        return audioTracks
+    }
+
+
+    fun getSubtitleTracks(): List<Map<String, String>> {
+        val subtitleTracks = mutableListOf<Map<String, String>>()
+        var globalTrackId = 0
+        try {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                    val rendererType = mappedTrackInfo.getRendererType(rendererIndex)
+                    if (rendererType != C.TRACK_TYPE_TEXT) {
+                        continue
+                    }
+                    val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
+
+                    for (i in 0 until trackGroupArray.length) {
+                        val group = trackGroupArray[i]
+                        for (j in 0 until group.length) {
+                            val format = group.getFormat(j)
+                        }
+                    }
+
+                    for (groupIndex in 0 until trackGroupArray.length) {
+                        val group = trackGroupArray[groupIndex]
+                        for (trackIndex in 0 until group.length) {
+                            val format = group.getFormat(trackIndex)
+                            val track = mutableMapOf<String, String>()
+                            track["id"] = globalTrackId.toString()
+                            track["groupIndex"] = groupIndex.toString()
+                            track["trackIndex"] = trackIndex.toString()
+                            track["label"] = format.label ?: "Subtitle Track ${globalTrackId}"
+                            track["language"] = format.language ?: "unknown"
+                            track["mimeType"] = format.sampleMimeType ?: "unknown"
+                            track["url"] = ""
+                            subtitleTracks.add(track)
+                            globalTrackId++
+                        }
+                    }
+                }
+            }
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+        return subtitleTracks
+    }
+
+    private var currentSubtitleRendererIndex: Int = -1
+    private var currentSubtitleGroupIndex: Int = -1
+    private var currentSubtitleTrackIndex: Int = -1
+
+    fun setSubtitleTrack(index: Int?) {
+        try {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                if (index == null) {
+                    disableSubtitleTrack()
+                    return
+                }
+
+                var globalTrackId = 0
+                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                    if (mappedTrackInfo.getRendererType(rendererIndex) != C.TRACK_TYPE_TEXT) {
+                        continue
+                    }
+                    val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
+                    for (groupIndex in 0 until trackGroupArray.length) {
+                        val group = trackGroupArray[groupIndex]
+                        for (trackIndex in 0 until group.length) {
+                            if (globalTrackId == index) {
+                                setSubtitleTrack(rendererIndex, groupIndex, trackIndex)
+                                currentSubtitleRendererIndex = rendererIndex
+                                currentSubtitleGroupIndex = groupIndex
+                                currentSubtitleTrackIndex = trackIndex
+                                return
+                            }
+                            globalTrackId++
+                        }
+                    }
+                }
+            }
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+    }
+
+    private fun setSubtitleTrack(rendererIndex: Int, groupIndex: Int, trackIndex: Int) {
+        try {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                val builder = trackSelector.parameters.buildUpon()
+                    .setRendererDisabled(rendererIndex, false)
+                    .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+                    .addOverride(
+                        TrackSelectionOverride(
+                            mappedTrackInfo.getTrackGroups(rendererIndex).get(groupIndex),
+                            trackIndex
+                        )
+                    )
+                trackSelector.setParameters(builder)
+            }
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+    }
+
+    private fun disableSubtitleTrack() {
+        try {
+            val builder = trackSelector.parameters.buildUpon()
+                .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                    if (mappedTrackInfo.getRendererType(rendererIndex) == C.TRACK_TYPE_TEXT) {
+                        builder.setRendererDisabled(rendererIndex, true)
+                    }
+                }
+            }
+            trackSelector.setParameters(builder)
+            currentSubtitleRendererIndex = -1
+            currentSubtitleGroupIndex = -1
+            currentSubtitleTrackIndex = -1
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+        }
+    }
+
+    fun getCurrentSubtitleText(): String {
+        try {
+            return currentSubtitleTextCache
+        } catch (exception: Exception) {
+            return ""
+        }
+    }
+
+
 
     private fun sendSeekToEvent(positionMs: Long) {
         exoPlayer?.seekTo(positionMs)

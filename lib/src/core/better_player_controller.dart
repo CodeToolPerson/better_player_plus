@@ -382,39 +382,58 @@ class BetterPlayerController {
       }
       _asmsSegmentsLoading = true;
       final BetterPlayerSubtitlesSource? source = _betterPlayerSubtitlesSource;
+      
+      if (source == null || source.asmsSegments == null || source.asmsSegments!.isEmpty) {
+        _asmsSegmentsLoading = false;
+        return;
+      }
+
       final Duration loadDurationEnd = Duration(
           milliseconds: position.inMilliseconds +
               5 * (_betterPlayerSubtitlesSource?.asmsSegmentsTime ?? 5000));
 
       final segmentsToLoad = _betterPlayerSubtitlesSource?.asmsSegments
           ?.where((segment) {
-            return segment.startTime > position &&
-                segment.endTime < loadDurationEnd &&
-                !_asmsSegmentsLoaded.contains(segment.realUrl);
+            try {
+              return segment.startTime > position &&
+                  segment.endTime < loadDurationEnd &&
+                  !_asmsSegmentsLoaded.contains(segment.realUrl);
+            } catch (e) {
+              return false;
+            }
           })
           .map((segment) => segment.realUrl)
+          .where((url) => url.isNotEmpty)
           .toList();
 
       if (segmentsToLoad != null && segmentsToLoad.isNotEmpty) {
-        final subtitlesParsed =
-            await BetterPlayerSubtitlesFactory.parseSubtitles(
-                BetterPlayerSubtitlesSource(
-          type: _betterPlayerSubtitlesSource!.type,
-          headers: _betterPlayerSubtitlesSource!.headers,
-          urls: segmentsToLoad,
-        ));
+        try {
+          final subtitlesParsed =
+              await BetterPlayerSubtitlesFactory.parseSubtitles(
+                  BetterPlayerSubtitlesSource(
+            type: _betterPlayerSubtitlesSource!.type,
+            headers: _betterPlayerSubtitlesSource!.headers,
+            urls: segmentsToLoad,
+          ));
 
-        ///Additional check if current source of subtitles is same as source
-        ///used to start loading subtitles. It can be different when user
-        ///changes subtitles and there was already pending load.
-        if (source == _betterPlayerSubtitlesSource) {
-          subtitlesLines.addAll(subtitlesParsed);
+          ///Additional check if current source of subtitles is same as source
+          ///used to start loading subtitles. It can be different when user
+          ///changes subtitles and there was already pending load.
+          if (source == _betterPlayerSubtitlesSource) {
+            if (subtitlesParsed.isNotEmpty) {
+              subtitlesLines.addAll(subtitlesParsed);
+            }
+            _asmsSegmentsLoaded.addAll(segmentsToLoad);
+          }
+        } catch (e) {
+          BetterPlayerUtils.log("Failed to parse subtitle segments: $e");
           _asmsSegmentsLoaded.addAll(segmentsToLoad);
         }
       }
-      _asmsSegmentsLoading = false;
-    } on Exception catch (exception) {
+    } catch (exception) {
       BetterPlayerUtils.log("Load ASMS subtitle segments failed: $exception");
+    } finally {
+      _asmsSegmentsLoading = false;
     }
   }
 
@@ -1202,6 +1221,43 @@ class BetterPlayerController {
 
     _betterPlayerAsmsAudioTrack = audioTrack;
     videoPlayerController!.setAudioTrack(audioTrack.label, audioTrack.id);
+  }
+
+  ///Get all available audio tracks from current video source.
+  ///Works for both streaming (HLS/DASH) and container files (MP4/MKV).
+  Future<List<Map<String, dynamic>>> getAvailableAudioTracks() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getAudioTracks();
+  }
+
+
+  ///Get all available subtitle tracks from current video source.
+  ///Works for both streaming (HLS/DASH) and container files (MP4/MKV).
+  Future<List<Map<String, dynamic>>> getAvailableSubtitleTracks() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getSubtitleTracks();
+  }
+
+  ///Set subtitle track by index. Pass null to disable subtitles.
+  ///Works for embedded subtitles in container files (MP4/MKV).
+  void setSubtitleTrack(int? index) {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    videoPlayerController!.setSubtitleTrack(index);
+  }
+
+  ///Get current subtitle text at current playback position.
+  ///Returns the subtitle text that should be displayed now.
+  Future<String> getCurrentSubtitleText() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getCurrentSubtitleText();
   }
 
   ///Enable or disable audio mixing with other sound within device.

@@ -270,6 +270,67 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<List<Map<String, dynamic>>> getAudioTracks(int? textureId) async {
+    final result = await _channel.invokeMethod<List<dynamic>>(
+      'getAudioTracks',
+      <String, dynamic>{
+        'textureId': textureId,
+      },
+    );
+    if (result != null) {
+      return result.map((item) {
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+        return <String, dynamic>{};
+      }).toList();
+    }
+    return [];
+  }
+
+
+  @override
+  Future<List<Map<String, dynamic>>> getSubtitleTracks(int? textureId) async {
+    final result = await _channel.invokeMethod<List<dynamic>>(
+      'getSubtitleTracks',
+      <String, dynamic>{
+        'textureId': textureId,
+      },
+    );
+    if (result != null) {
+      return result.map((item) {
+        if (item is Map) {
+          return Map<String, dynamic>.from(item);
+        }
+        return <String, dynamic>{};
+      }).toList();
+    }
+    return [];
+  }
+
+  @override
+  Future<void> setSubtitleTrack(int? textureId, int? index) {
+    return _channel.invokeMethod<void>(
+      'setSubtitleTrack',
+      <String, dynamic>{
+        'textureId': textureId,
+        'index': index,
+      },
+    );
+  }
+
+  @override
+  Future<String> getCurrentSubtitleText(int? textureId) async {
+    final result = await _channel.invokeMethod<String>(
+      'getCurrentSubtitleText',
+      <String, dynamic>{
+        'textureId': textureId,
+      },
+    );
+    return result ?? '';
+  }
+
+  @override
   Future<void> setMixWithOthers(int? textureId, bool mixWithOthers) {
     return _channel.invokeMethod<void>(
       'setMixWithOthers',

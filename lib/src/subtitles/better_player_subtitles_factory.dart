@@ -44,19 +44,46 @@ class BetterPlayerSubtitlesFactory {
       BetterPlayerSubtitlesSource source) async {
     try {
       final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 30);
       final List<BetterPlayerSubtitle> subtitles = [];
+      
       for (final String? url in source.urls!) {
-        final request = await client.getUrl(Uri.parse(url!));
-        source.headers?.keys.forEach((key) {
-          final value = source.headers![key];
-          if (value != null) {
-            request.headers.add(key, value);
+        if (url == null || url.trim().isEmpty) {
+          continue;
+        }
+
+        try {
+          final request = await client.getUrl(Uri.parse(url));
+          source.headers?.keys.forEach((key) {
+            final value = source.headers![key];
+            if (value != null) {
+              request.headers.add(key, value);
+            }
+          });
+          
+          final response = await request.close();
+          
+          if (response.statusCode != 200) {
+            continue;
           }
-        });
-        final response = await request.close();
-        final data = await response.transform(const Utf8Decoder()).join();
-        final cacheList = _parseString(data);
-        subtitles.addAll(cacheList);
+
+          final data = await response.transform(const Utf8Decoder()).join();
+          
+          if (data.trim().isEmpty) {
+            continue;
+          }
+
+          if (data.trim().startsWith('#EXTM3U') && !_isValidSubtitleContent(data)) {
+            continue;
+          }
+
+          final cacheList = _parseString(data);
+          subtitles.addAll(cacheList);
+          
+        } catch (e) {
+          BetterPlayerUtils.log("Failed to load subtitle from $url: $e");
+          continue;
+        }
       }
       client.close();
 
@@ -80,31 +107,75 @@ class BetterPlayerSubtitlesFactory {
   }
 
   static List<BetterPlayerSubtitle> _parseString(String value) {
-    List<String> components = value.split('\r\n\r\n');
-    if (components.length == 1) {
-      components = value.split('\n\n');
-    }
+    try {
+      if (value.trim().isEmpty) {
+        return [];
+      }
 
-    // Skip parsing files with no cues
-    if (components.length == 1) {
+      if (value.trim().startsWith('#EXTM3U') && !_isValidSubtitleContent(value)) {
+        return [];
+      }
+
+      List<String> components = value.split('\r\n\r\n');
+      if (components.length == 1) {
+        components = value.split('\n\n');
+      }
+
+      // Skip parsing files with no cues
+      if (components.length == 1) {
+        return [];
+      }
+
+      final List<BetterPlayerSubtitle> subtitlesObj = [];
+      final bool isWebVTT = components.contains("WEBVTT");
+
+      for (final component in components) {
+        if (component.trim().isEmpty) {
+          continue;
+        }
+        
+        try {
+          final subtitle = BetterPlayerSubtitle(component, isWebVTT);
+          if (subtitle.start != null &&
+              subtitle.end != null &&
+              subtitle.texts != null &&
+              subtitle.texts!.isNotEmpty) {
+            subtitlesObj.add(subtitle);
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      return subtitlesObj;
+    } catch (e) {
+      BetterPlayerUtils.log("Failed to parse subtitle string: $e");
       return [];
     }
+  }
 
-    final List<BetterPlayerSubtitle> subtitlesObj = [];
-
-    final bool isWebVTT = components.contains("WEBVTT");
-    for (final component in components) {
-      if (component.isEmpty) {
-        continue;
-      }
-      final subtitle = BetterPlayerSubtitle(component, isWebVTT);
-      if (subtitle.start != null &&
-          subtitle.end != null &&
-          subtitle.texts != null) {
-        subtitlesObj.add(subtitle);
+  /// Validates whether content is actual subtitle content and not an M3U8 playlist
+  static bool _isValidSubtitleContent(String content) {
+    final lines = content.split('\n');
+    
+    // WebVTT subtitles should contain WEBVTT header
+    if (content.contains('WEBVTT')) {
+      return true;
+    }
+    
+    // SRT subtitles usually contain timestamp format
+    for (final line in lines) {
+      if (line.contains('-->') && 
+          (line.contains(':') || line.contains('.'))) {
+        return true;
       }
     }
-
-    return subtitlesObj;
+    
+    // If it contains M3U8 specific tags but no subtitle timestamps, it's not subtitle
+    final hasM3u8Tags = content.contains('#EXT-X-') || 
+                       content.contains('#EXTINF') ||
+                       content.contains('#EXT-X-TARGETDURATION');
+    
+    return !hasM3u8Tags;
   }
 }
