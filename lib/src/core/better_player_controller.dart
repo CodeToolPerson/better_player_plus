@@ -1242,6 +1242,24 @@ class BetterPlayerController {
     return await videoPlayerController!.getSubtitleTracks();
   }
 
+  ///Get all available video tracks from current video source.
+  ///Works for container files (MP4/MKV) and provides accurate frame rates.
+  Future<List<Map<String, dynamic>>> getAvailableVideoTracks() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getVideoTracks();
+  }
+
+  ///Get current video frame rate (FPS) from MediaExtractor.
+  ///Provides more accurate frame rate than ExoPlayer for certain formats.
+  Future<double?> getCurrentVideoFps() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return await videoPlayerController!.getCurrentVideoFps();
+  }
+
   ///Set subtitle track by index. Pass null to disable subtitles.
   ///Works for embedded subtitles in container files (MP4/MKV).
   void setSubtitleTrack(int? index) {

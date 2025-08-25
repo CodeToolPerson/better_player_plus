@@ -29,6 +29,8 @@ import androidx.media3.ui.PlayerNotificationManager.BitmapCallback
 import androidx.work.OneTimeWorkRequest
 import android.util.Log
 import android.view.Surface
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -107,8 +109,10 @@ internal class BetterPlayer(
     private val customDefaultLoadControl: CustomDefaultLoadControl =
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
-
     private var currentSubtitleTextCache: String = ""
+    private var extractedFrameRate: Float? = null
+    private var currentDataSource: String? = null
+    private var currentHeaders: Map<String, String>? = null
 
     init {
         val loadBuilder = DefaultLoadControl.Builder()
@@ -246,6 +250,10 @@ internal class BetterPlayer(
             exoPlayer?.setMediaSource(mediaSource)
         }
         exoPlayer?.prepare()
+        currentDataSource = dataSource
+        currentHeaders = headers
+        extractFrameRateAsync(dataSource, headers)
+        
         result.success(null)
     }
 
@@ -794,6 +802,12 @@ internal class BetterPlayer(
                             track["language"] = format.language ?: "unknown"
                             track["mimeType"] = format.sampleMimeType ?: "unknown"
                             track["url"] = ""
+                            track["channelCount"] = format.channelCount.toString()
+                            track["channels"] = format.channelCount.toString()
+                            track["codecs"] = format.codecs ?: ""
+                            track["codec"] = format.sampleMimeType ?: ""
+                            track["sampleRate"] = format.sampleRate.toString()
+                            track["bitrate"] = format.bitrate.toString()
                             audioTracks.add(track)
                             globalTrackId++
                         }
@@ -806,6 +820,65 @@ internal class BetterPlayer(
         return audioTracks
     }
 
+    fun getVideoTracks(): List<Map<String, Any>> {
+        val videoTracks = mutableListOf<Map<String, Any>>()
+        var globalTrackId = 0
+        try {
+            val mappedTrackInfo = trackSelector.currentMappedTrackInfo
+            if (mappedTrackInfo != null) {
+                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                    val rendererType = mappedTrackInfo.getRendererType(rendererIndex)
+                    if (rendererType != C.TRACK_TYPE_VIDEO) {
+                        continue
+                    }
+                    val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
+                    for (groupIndex in 0 until trackGroupArray.length) {
+                        val group = trackGroupArray[groupIndex]
+                        for (trackIndex in 0 until group.length) {
+                            val format = group.getFormat(trackIndex)
+                            val track = mutableMapOf<String, Any>()
+                            track["id"] = globalTrackId
+                            track["groupIndex"] = groupIndex
+                            track["trackIndex"] = trackIndex
+                            track["label"] = format.label ?: "Video Track $globalTrackId"
+                            track["width"] = format.width
+                            track["height"] = format.height
+                            track["bitrate"] = format.bitrate
+                            track["codecs"] = format.codecs ?: ""
+                            track["mimeType"] = format.sampleMimeType ?: ""
+                            val frameRate = extractedFrameRate?.toDouble() ?: run {
+                                if (format.frameRate > 0) format.frameRate.toDouble() else null
+                            }
+                            
+                            if (frameRate != null && frameRate > 0) {
+                                track["frameRate"] = frameRate
+                            }
+                            
+                            videoTracks.add(track)
+                            globalTrackId++
+                        }
+                    }
+                }
+            }
+        } catch (exception: Exception) {
+            // Handle errors silently
+        }
+        
+        return videoTracks
+    }
+
+    fun getCurrentVideoFps(): Double? {
+        extractedFrameRate?.let { 
+            return it.toDouble() 
+        }
+        
+        val format = exoPlayer?.videoFormat
+        return if (format?.frameRate != null && format.frameRate > 0) {
+            format.frameRate.toDouble()
+        } else {
+            null
+        }
+    }
 
     fun getSubtitleTracks(): List<Map<String, String>> {
         val subtitleTracks = mutableListOf<Map<String, String>>()
@@ -977,6 +1050,136 @@ internal class BetterPlayer(
         var result = exoPlayer?.hashCode() ?: 0
         result = 31 * result + if (surface != null) surface.hashCode() else 0
         return result
+    }
+
+    private fun extractFrameRateAsync(dataSource: String?, headers: Map<String, String>?) {
+        if (dataSource == null) return
+        
+        Thread {
+            try {
+                val extractor = MediaExtractor()
+                if (isHTTP(Uri.parse(dataSource))) {
+                    extractor.setDataSource(dataSource, headers ?: emptyMap())
+                } else {
+                    extractor.setDataSource(dataSource)
+                }
+                
+                val trackCount = extractor.trackCount
+                
+                for (i in 0 until trackCount) {
+                    val format = extractor.getTrackFormat(i)
+                    val mimeType = format.getString(MediaFormat.KEY_MIME)
+                    
+                    if (mimeType?.startsWith("video/") == true) {
+                        val frameRate = try {
+                            if (format.containsKey(MediaFormat.KEY_FRAME_RATE)) {
+                                try {
+                                    format.getFloat(MediaFormat.KEY_FRAME_RATE)
+                                } catch (castException: ClassCastException) {
+                                    format.getInteger(MediaFormat.KEY_FRAME_RATE).toFloat()
+                                }
+                            } else {
+                                null
+                            }
+                        } catch (e: Exception) {
+                            null
+                        }
+                        
+                        if (frameRate != null && frameRate > 0) {
+                            extractedFrameRate = frameRate
+                            break
+                        } else {
+                            val calculatedFps = calculateFpsFromTimestamps(extractor, i)
+                            if (calculatedFps != null && calculatedFps > 0) {
+                                extractedFrameRate = calculatedFps
+                                break
+                            }
+                        }
+                    }
+                }
+                
+                extractor.release()
+                
+            } catch (e: Exception) {
+                extractedFrameRate = null
+            }
+        }.start()
+    }
+
+    private fun calculateFpsFromTimestamps(extractor: MediaExtractor, videoTrackIndex: Int): Float? {
+        return try {
+            extractor.selectTrack(videoTrackIndex)
+            
+            val timestamps = mutableListOf<Long>()
+            val maxSamples = 100
+            var sampleCount = 0
+            
+            while (sampleCount < maxSamples) {
+                val sampleTime = extractor.sampleTime
+                if (sampleTime < 0) break
+                
+                timestamps.add(sampleTime)
+                sampleCount++
+                
+                if (!extractor.advance()) break
+            }
+            
+            if (timestamps.size >= 20) {
+                val intervals = mutableListOf<Long>()
+                for (i in 1 until timestamps.size) {
+                    val interval = timestamps[i] - timestamps[i - 1]
+                    if (interval > 0) {
+                        intervals.add(interval)
+                    }
+                }
+                
+                if (intervals.isNotEmpty()) {
+                    intervals.sort()
+                    val trimStart = (intervals.size * 0.1).toInt()
+                    val trimEnd = intervals.size - trimStart
+                    val trimmedIntervals = if (trimEnd > trimStart) {
+                        intervals.subList(trimStart, trimEnd)
+                    } else {
+                        intervals
+                    }
+                    
+                    val avgInterval = trimmedIntervals.average()
+                    val rawFps = 1_000_000.0 / avgInterval
+                    
+                    val smartFps = when {
+                        rawFps > 55 -> 60.0
+                        rawFps > 45 -> 50.0
+                        rawFps > 28 -> 30.0
+                        rawFps > 20 -> 25.0
+                        rawFps > 18 -> 24.0
+                        rawFps > 11 -> {
+                            val possibleFps = rawFps * 2
+                            when {
+                                possibleFps > 22 -> 25.0
+                                possibleFps > 20 -> 24.0
+                                else -> 15.0
+                            }
+                        }
+                        rawFps > 8 -> 12.0
+                        else -> rawFps
+                    }
+                    
+                    if (smartFps >= 5.0 && smartFps <= 120.0) {
+                        return smartFps.toFloat()
+                    }
+                }
+            }
+            
+            null
+        } catch (e: Exception) {
+            null
+        } finally {
+            try {
+                extractor.unselectTrack(videoTrackIndex)
+            } catch (e: Exception) {
+                // Silent Processing
+            }
+        }
     }
 
     companion object {

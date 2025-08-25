@@ -638,6 +638,14 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     return _videoPlayerPlatform.getCurrentSubtitleText(_textureId);
   }
 
+  Future<List<Map<String, dynamic>>> getVideoTracks() {
+    return _videoPlayerPlatform.getVideoTracks(_textureId);
+  }
+
+  Future<double?> getCurrentVideoFps() {
+    return _videoPlayerPlatform.getCurrentVideoFps(_textureId);
+  }
+
   void setMixWithOthers(bool mixWithOthers) {
     _videoPlayerPlatform.setMixWithOthers(_textureId, mixWithOthers);
   }
