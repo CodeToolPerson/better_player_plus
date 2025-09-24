@@ -6,7 +6,7 @@ import 'package:better_player_plus/src/controls/better_player_multiple_gesture_d
 import 'package:better_player_plus/src/controls/better_player_progress_colors.dart';
 import 'package:better_player_plus/src/core/better_player_controller.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
-import 'package:better_player_plus/src/video_player/video_player.dart';
+import 'package:better_player_plus/src/platform_video/video_player.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -788,7 +788,7 @@ class _BetterPlayerCupertinoControlsState
                     right: buttonPadding,
                   ),
                   decoration: BoxDecoration(
-                    color: backgroundColor.withOpacity(0.5),
+                    color: backgroundColor.withValues(alpha: 0.5),
                   ),
                   child: Center(
                     child: Icon(

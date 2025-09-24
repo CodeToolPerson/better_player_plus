@@ -1,3 +1,9 @@
+## 1.0.13
+
+* Android: Foreground service compliance for Android 10+/targetSdk 35; add `FOREGROUND_SERVICE_MEDIA_PLAYBACK` permission and declare `foregroundServiceType=mediaPlayback` to prevent DDS/VM Service disconnects.
+* Android: Upgrade Media3/ExoPlayer to 1.8.0 and bump `compileSdk` to 35.
+* Android: Adapt to Media3 1.8.0 API changes; fix build issues by converting `MediaSessionCompat` token to `android.media.session.MediaSession.Token` and using `ExoPlayer.setAudioAttributes(...)` instead of the deprecated `audioComponent`.
+
 ## 1.0.6
 
 * package update. 

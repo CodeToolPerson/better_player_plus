@@ -31,6 +31,7 @@ import android.util.Log
 import android.view.Surface
 import android.media.MediaExtractor
 import android.media.MediaFormat
+import android.media.session.MediaSession
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -374,8 +375,13 @@ internal class BetterPlayer(
                 setUseStopAction(false)
             }
 
-            setupMediaSession(context)?.let {
-                setMediaSessionToken(it.sessionToken)
+            setupMediaSession(context)?.let { compatSession ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    val frameworkToken = compatSession.sessionToken.token
+                    if (frameworkToken is MediaSession.Token) {
+                        setMediaSessionToken(frameworkToken)
+                    }
+                }
             }
         }
 
@@ -582,10 +588,8 @@ internal class BetterPlayer(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun setAudioAttributes(exoPlayer: ExoPlayer?, mixWithOthers: Boolean) {
-        val audioComponent = exoPlayer?.audioComponent ?: return
-        audioComponent.setAudioAttributes(
+        exoPlayer?.setAudioAttributes(
             AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
             !mixWithOthers
         )

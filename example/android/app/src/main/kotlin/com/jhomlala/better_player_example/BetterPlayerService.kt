@@ -3,6 +3,7 @@ package com.jhomlala.better_player_example
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.annotation.RequiresApi
@@ -47,7 +48,17 @@ class BetterPlayerService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationBuilder.setCategory(Notification.CATEGORY_SERVICE);
         }
-        startForeground(foregroundNotificationId, notificationBuilder.build())
+        val notification = notificationBuilder.build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // On Android 10+ require a foreground service type (media playback here)
+            startForeground(
+                foregroundNotificationId,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(foregroundNotificationId, notification)
+        }
         return START_NOT_STICKY
     }
 

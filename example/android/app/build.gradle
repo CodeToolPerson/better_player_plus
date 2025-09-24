@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 
 
 android {
-    compileSdk 34
+    compileSdk 35
     namespace "com.jhomlala.better_player_example"
 
     compileOptions {
@@ -47,7 +47,7 @@ android {
     defaultConfig {
         applicationId "com.jhomlala.better_player_example"
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
