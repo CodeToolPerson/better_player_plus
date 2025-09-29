@@ -1,3 +1,7 @@
+## 1.0.14
+
+- Flutter: Add adjustable video display aspect ratio support in player UI and API.
+
 ## 1.0.13
 
 * Android: Foreground service compliance for Android 10+/targetSdk 35; add `FOREGROUND_SERVICE_MEDIA_PLAYBACK` permission and declare `foregroundServiceType=mediaPlayback` to prevent DDS/VM Service disconnects.
