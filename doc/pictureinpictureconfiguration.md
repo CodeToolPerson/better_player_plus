@@ -2,7 +2,6 @@
 Picture in Picture is not supported on all devices.
 
 Requirements:
-* iOS: iOS version greater than 14.0
 * Android: Android version greater than 8.0, enough RAM, v2 Flutter android embedding
 
 Each OS provides method to check if given device supports PiP. If device doesn't support PiP, then
@@ -42,7 +41,7 @@ PiP menu item is enabled as default in both Material and Cuperino controls. You 
 `pipMenuIcon` variable in `BetterPlayerControlsConfiguration`.
 
 Warning:
-Both Android and iOS PiP versions are in very early stage. There can be bugs and small issues. Please
+Android PiP feature is in an early stage. There can be bugs and small issues. Please
 make sure that you've checked state of the PiP in Better Player before moving it to the production.
 
 Known limitations:

@@ -247,7 +247,6 @@ class DataSource {
     this.notificationChannelName,
     this.overriddenDuration,
     this.licenseUrl,
-    this.certificateUrl,
     this.drmHeaders,
     this.activityName,
     this.clearKey,
@@ -320,8 +319,6 @@ class DataSource {
 
   final String? licenseUrl;
 
-  final String? certificateUrl;
-
   final Map<String, String>? drmHeaders;
 
   final String? activityName;
@@ -351,7 +348,7 @@ class DataSource {
 
   @override
   String toString() {
-    return 'DataSource{sourceType: $sourceType, uri: $uri certificateUrl: $certificateUrl, formatHint:'
+    return 'DataSource{sourceType: $sourceType, uri: $uri, formatHint:'
         ' $formatHint, asset: $asset, package: $package, headers: $headers,'
         ' useCache: $useCache,maxCacheSize: $maxCacheSize, maxCacheFileSize: '
         '$maxCacheFileSize, showNotification: $showNotification, title: $title,'

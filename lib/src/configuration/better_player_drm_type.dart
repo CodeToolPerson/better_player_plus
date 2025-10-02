@@ -1,6 +1,5 @@
 ///Types of available DRM's
-///token -> supported for both iOS/Android
+///token -> supported for Android
 ///widevine -> supported only for Android
-///fairplay -> suppoted only for iOS
 ///clearKey -> supported only for Android
-enum BetterPlayerDrmType { token, widevine, fairplay, clearKey }
+enum BetterPlayerDrmType { token, widevine, clearKey }

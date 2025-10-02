@@ -81,7 +81,7 @@ This plugin is based on [Chewie](https://github.com/brianegan/chewie). Chewie is
 ✔️ Cache support  
 ✔️ Notifications support  
 ✔️ Picture in Picture support     
-✔️ DRM support (token, Widevine, FairPlay EZDRM).    
+✔️ DRM support (token, Widevine).    
 ✔️ ... and much more!  
 
 

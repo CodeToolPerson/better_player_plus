@@ -9,7 +9,7 @@
 
 - Highly customizable
 - Solves many typical use cases and it's easy to run
-- Supports both Android and iOS
+- Supports Android
 
 [GitHub](https://github.com/jhomlala/betterplayer)
 [Get Started](https://jhomlala.github.io/betterplayer/#/README)

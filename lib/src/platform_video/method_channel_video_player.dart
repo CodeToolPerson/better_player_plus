@@ -4,7 +4,6 @@
 import 'dart:async';
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'video_player_platform_interface.dart';
@@ -90,7 +89,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'notificationChannelName': dataSource.notificationChannelName,
           'overriddenDuration': dataSource.overriddenDuration?.inMilliseconds,
           'licenseUrl': dataSource.licenseUrl,
-          'certificateUrl': dataSource.certificateUrl,
           'drmHeaders': dataSource.drmHeaders,
           'activityName': dataSource.activityName,
           'clearKey': dataSource.clearKey,
@@ -384,7 +382,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
     final Map<String, dynamic> dataSourceDescription = <String, dynamic>{
       'key': dataSource.key,
       'uri': dataSource.uri,
-      'certificateUrl': dataSource.certificateUrl,
       'headers': dataSource.headers,
       'maxCacheSize': dataSource.maxCacheSize,
       'maxCacheFileSize': dataSource.maxCacheFileSize,
@@ -511,15 +508,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Widget buildView(int? textureId) {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return UiKitView(
-        viewType: 'com.jhomlala/better_player',
-        creationParamsCodec: const StandardMessageCodec(),
-        creationParams: {'textureId': textureId!},
-      );
-    } else {
-      return Texture(textureId: textureId!);
-    }
+    return Texture(textureId: textureId!);
   }
 
   EventChannel _eventChannelFor(int? textureId) {

@@ -31,5 +31,3 @@ flutter:
       android:
         package: uz.shs.better_player_plus
         pluginClass: BetterPlayerPlugin
-      ios:
-        pluginClass: BetterPlayerPlugin

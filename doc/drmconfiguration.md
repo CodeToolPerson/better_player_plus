@@ -2,9 +2,8 @@
 To configure DRM for your data source, use drmConfiguration parameter. 
 Supported DRMs:
 
-* Token based (authorization header): Android/iOS
-* Widevine (licensue url + headers): Android
-* Fairplay EZDRM (certificate url, license url): iOS
+* Token based (authorization header): Android
+* Widevine (license url + headers): Android
 
 Additional DRM types may be added in the future.
 
@@ -33,20 +32,6 @@ BetterPlayerDataSource _widevineDataSource = BetterPlayerDataSource(
     ),
 );
 ```
-Fairplay:
-
-```dart
-BetterPlayerDataSource _fairplayDataSource = BetterPlayerDataSource(
-    BetterPlayerDataSourceType.network,
-    Constants.fairplayHlsUrl,
-    drmConfiguration: BetterPlayerDrmConfiguration(
-        drmType: BetterPlayerDrmType.fairplay,
-        certificateUrl: Constants.fairplayCertificateUrl,
-        licenseUrl: Constants.fairplayLicenseUrl,
-    ),
-);
-```
-
 ClearKey (only supported in Android):
 
 A ClearKey MP4 file can be generated with MP4Box as follow:

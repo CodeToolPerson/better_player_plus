@@ -39,11 +39,7 @@ final IconData fullscreenEnableIcon;
 ///Icon of fullscreen mode disable
 final IconData fullscreenDisableIcon;
 
-///Cupertino only icon, icon of skip
-final IconData skipBackIcon;
 
-///Cupertino only icon, icon of forward
-final IconData skipForwardIcon;
 
 ///Flag used to enable/disable fullscreen
 final bool enableFullscreen;
@@ -158,10 +154,10 @@ final Widget loadingWidget;
 ///Color of the background, when no frame is displayed.
 final Color backgroundColor;
 
-///Quality of Gaussian Blur for x (iOS only).
+///Quality of Gaussian Blur for x (Cupertino-styled).
 final double sigmaX;
 
-///Quality of Gaussian Blur for y (iOS only).
+///Quality of Gaussian Blur for y (Cupertino-styled).
 final double sigmaY;
 ```
 

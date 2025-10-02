@@ -581,7 +581,7 @@ internal class BetterPlayer(
             val event: MutableMap<String, Any> = HashMap()
             event["event"] = "bufferingUpdate"
             val range: List<Number?> = listOf(0, bufferedPosition)
-            // iOS supports a list of buffered ranges, so here is a list with a single range.
+            // Platform note: we send a list with a single buffered range to match the event schema.
             event["values"] = listOf(range)
             eventSink.success(event)
             lastSendBufferedPosition = bufferedPosition

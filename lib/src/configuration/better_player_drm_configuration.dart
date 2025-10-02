@@ -11,9 +11,6 @@ class BetterPlayerDrmConfiguration {
   ///Url of license server
   final String? licenseUrl;
 
-  ///Url of fairplay certificate
-  final String? certificateUrl;
-
   ///ClearKey json object, used only for ClearKey protection. Only support for Android.
   final String? clearKey;
 
@@ -24,7 +21,6 @@ class BetterPlayerDrmConfiguration {
       {this.drmType,
       this.token,
       this.licenseUrl,
-      this.certificateUrl,
       this.headers,
       this.clearKey});
 }

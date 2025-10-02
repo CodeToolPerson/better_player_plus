@@ -438,7 +438,6 @@ class BetterPlayerController {
           overriddenDuration: _betterPlayerDataSource!.overriddenDuration,
           formatHint: _getVideoFormat(_betterPlayerDataSource!.videoFormat),
           licenseUrl: _betterPlayerDataSource?.drmConfiguration?.licenseUrl,
-          certificateUrl: _betterPlayerDataSource?.drmConfiguration?.certificateUrl,
           drmHeaders: _betterPlayerDataSource?.drmConfiguration?.headers,
           activityName: _betterPlayerDataSource?.notificationConfiguration?.activityName,
           clearKey: _betterPlayerDataSource?.drmConfiguration?.clearKey,
@@ -994,7 +993,7 @@ class BetterPlayerController {
   }
 
   ///Enable Picture in Picture (PiP) mode. [betterPlayerGlobalKey] is required
-  ///to open PiP mode in iOS. When device is not supported, PiP mode won't be
+  ///to open PiP mode. When device is not supported, PiP mode won't be
   ///open.
   Future<void>? enablePictureInPicture(GlobalKey betterPlayerGlobalKey) async {
     if (videoPlayerController == null) {
@@ -1014,21 +1013,7 @@ class BetterPlayerController {
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         return;
       }
-      if (Platform.isIOS) {
-        final RenderBox? renderBox = betterPlayerGlobalKey.currentContext!.findRenderObject() as RenderBox?;
-        if (renderBox == null) {
-          BetterPlayerUtils.log("Can't show PiP. RenderBox is null. Did you provide valid global"
-              " key?");
-          return;
-        }
-        final Offset position = renderBox.localToGlobal(Offset.zero);
-        return videoPlayerController?.enablePictureInPicture(
-          left: position.dx,
-          top: position.dy,
-          width: renderBox.size.width,
-          height: renderBox.size.height,
-        );
-      } else {
+      else {
         BetterPlayerUtils.log("Unsupported PiP in current platform.");
       }
     } else {
@@ -1213,13 +1198,10 @@ class BetterPlayerController {
     return headers;
   }
 
-  ///PreCache a video. On Android, the future succeeds when
-  ///the requested size, specified in
-  ///[BetterPlayerCacheConfiguration.preCacheSize], is downloaded or when the
-  ///complete file is downloaded if the file is smaller than the requested size.
-  ///On iOS, the whole file will be downloaded, since [maxCacheFileSize] is
-  ///currently not supported on iOS. On iOS, the video format must be in this
-  ///list: https://github.com/sendyhalim/Swime/blob/master/Sources/MimeType.swift
+  ///PreCache a video. The future succeeds when the requested size,
+  ///specified in [BetterPlayerCacheConfiguration.preCacheSize], is downloaded
+  ///or when the complete file is downloaded if the file is smaller than the
+  ///requested size.
   Future<void> preCache(BetterPlayerDataSource betterPlayerDataSource) async {
     final cacheConfig = betterPlayerDataSource.cacheConfiguration ?? const BetterPlayerCacheConfiguration(useCache: true);
 
