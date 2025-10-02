@@ -1,3 +1,27 @@
+## 1.0.15 - stable (Android-only)
+
+Highlights:
+- Android-only plugin: removed all iOS native code and iOS example
+- DRM cleanup: removed FairPlay and certificateUrl; keep token/Widevine
+- Controls: default to Material; removed Cupertino controls; simplify theme
+- Rendering: buildView always uses Texture on Flutter side
+- Docs: updated install, PiP, cache, DRM, home, coverpage, README
+- Assets: removed iOS icons
+
+Breaking Changes:
+- Removed iOS platform support
+- Removed FairPlay DRM (BetterPlayerDrmType.fairplay, certificateUrl)
+- Removed Cupertino controls and Cupertino-specific options
+
+Migration Guide:
+- Remove usages of BetterPlayerDrmType.fairplay and certificateUrl
+- If relying on Cupertino controls, switch to Material or provide customControlsBuilder
+- Android usage remains the same; no API change for common scenarios
+
+Commits:
+- b8a50ed feat(android-only): remove iOS, drop FairPlay, docs cleanup, Material-only
+- a989f21 chore(release): bump version to 1.0.15
+
 ## 1.0.14
 
 - Flutter: Add adjustable video display aspect ratio support in player UI and API.
