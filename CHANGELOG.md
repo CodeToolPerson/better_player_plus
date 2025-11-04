@@ -1,3 +1,19 @@
+## 1.0.16 - stable (Android-only)
+
+- FFmpeg: Integrated FFmpeg decoder for advanced audio format support (AC3, EAC3, DTS, TrueHD, FLAC, ALAC)
+- Build: Added AV1, IAMF, and MPEG-H decoder support
+- Dependencies: Upgraded Kotlin from 1.9.22 to 2.1.0 for compatibility with latest plugins
+- Build: Upgraded Android Gradle Plugin from 8.3.0 to 8.7.0
+- Build: Upgraded Gradle from 8.4 to 8.9
+- Android: Updated compileSdk and targetSdkVersion from 35 to 36
+- Example: Added MPEG stream test URL for advanced codec testing
+
+Breaking Changes:
+- None
+
+Migration:
+- No migration required; all changes are backward compatible
+
 ## 1.0.15 - stable (Android-only)
 
 - Android-only plugin: removed all iOS native code and iOS example
