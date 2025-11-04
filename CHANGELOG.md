@@ -1,3 +1,18 @@
+## 1.0.17 - stable (Android-only)
+
+- **FFmpeg**: Fixed FFmpeg extension support - properly configured Media3 decoder integration
+- **Audio**: Enhanced audio attributes with proper USAGE_MEDIA configuration
+- **Audio**: Improved audio track detection and selection
+- **Error Handling**: Added detailed error messages for decoder failures
+- **Fix**: Resolved audio playback issues with AC-3, DTS, and other advanced codecs
+- **Note**: Applications must include FFmpeg AAR files (from example/android/app/libs/) to support advanced audio formats
+
+Breaking Changes:
+- None (backward compatible)
+
+Migration:
+- For advanced audio codec support (AC-3, DTS, etc.), copy FFmpeg AAR files from example/android/app/libs/ to your app's android/app/libs/ directory and add them to build.gradle
+
 ## 1.0.16 - stable (Android-only)
 
 - FFmpeg: Integrated FFmpeg decoder for advanced audio format support (AC3, EAC3, DTS, TrueHD, FLAC, ALAC)

@@ -567,7 +567,18 @@ internal class BetterPlayer(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                eventSink.error("VideoError", "Video player had error $error", "")
+                val errorMessage = when (error.errorCode) {
+                    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED -> 
+                        "Decoder initialization failed. Codec may not be supported."
+                    PlaybackException.ERROR_CODE_DECODING_FAILED -> 
+                        "Decoding failed. Audio/Video format may not be supported."
+                    PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED -> 
+                        "Audio track initialization failed. Check audio codec support."
+                    else -> "Video player error: ${error.errorCodeName}"
+                }
+                Log.e(TAG, "PlaybackException [${error.errorCode}]: $errorMessage", error)
+                
+                eventSink.error("VideoError", errorMessage, error.errorCodeName)
             }
         })
         val reply: MutableMap<String, Any> = HashMap()
@@ -589,11 +600,12 @@ internal class BetterPlayer(
     }
 
     private fun setAudioAttributes(exoPlayer: ExoPlayer?, mixWithOthers: Boolean) {
-        exoPlayer?.setAudioAttributes(
-            AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
-            !mixWithOthers
-        )
-
+        val audioAttributes = AudioAttributes.Builder()
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .setUsage(C.USAGE_MEDIA)
+            .build()
+        
+        exoPlayer?.setAudioAttributes(audioAttributes, !mixWithOthers)
     }
 
     fun play() {
@@ -783,11 +795,6 @@ internal class BetterPlayer(
         try {
             val mappedTrackInfo = trackSelector.currentMappedTrackInfo
             if (mappedTrackInfo != null) {
-
-                for (i in 0 until mappedTrackInfo.rendererCount) {
-                    val type = mappedTrackInfo.getRendererType(i)
-                    val groups = mappedTrackInfo.getTrackGroups(i)
-                }
                 for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
                     val rendererType = mappedTrackInfo.getRendererType(rendererIndex)
                     if (rendererType != C.TRACK_TYPE_AUDIO) {

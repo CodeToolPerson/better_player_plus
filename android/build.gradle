@@ -59,6 +59,11 @@ android {
         implementation "androidx.media3:media3-exoplayer-dash:$media3_version"
         implementation "androidx.media3:media3-datasource-cronet:$media3_version"
         implementation "androidx.media3:media3-exoplayer-smoothstreaming:$media3_version"
+        
+        // FFmpeg extension for additional codec support (AC-3, DTS, MPEG-H, etc.)
+        // Note: Applications using this plugin should include the FFmpeg decoder AAR files
+        // compileOnly allows the extension to be available if provided by the app
+        compileOnly "androidx.media3:media3-decoder:$media3_version"
 
         implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common:$lifecycleVersion"

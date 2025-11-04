@@ -90,6 +90,9 @@ This plugin is based on [Chewie](https://github.com/brianegan/chewie). Chewie is
 * [Example application](https://github.com/jhomlala/betterplayer/tree/master/example)
 * [API reference](https://pub.dev/documentation/better_player/latest/better_player/better_player-library.html)
 
+## FFmpeg Support for Advanced Audio Codecs
+For AC-3, DTS, and other advanced audio codec support, copy FFmpeg AAR files from `example/android/app/libs/` to your app and add them to `build.gradle`. See example app for reference.
+
 
 ## Important information
 This plugin development is in progress. You may encounter breaking changes each version. This plugin is developed part-time for free. If you need
