@@ -38,23 +38,25 @@ class _MpegPlayerPageState extends State<MpegPlayerPage> {
       appBar: AppBar(
         title: Text("MPEG Test"),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              "MPEG Test stream playback page。",
-              style: TextStyle(fontSize: 16),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                "MPEG Test stream playback page。",
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-          ),
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: BetterPlayer(
-              controller: _controller,
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: BetterPlayer(
+                controller: _controller,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

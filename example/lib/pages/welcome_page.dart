@@ -2,8 +2,6 @@ import 'dart:io';
 
 import 'package:better_player_example/constants.dart';
 import 'package:better_player_example/pages/mpeg_player_page.dart';
-import 'package:better_player_example/pages/picture_in_picture_page.dart';
-import 'package:better_player_example/pages/subtitles_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -54,12 +52,6 @@ class _WelcomePageState extends State<WelcomePage> {
     return [
       _buildExampleElementWidget("MPEG (Basic)", () {
         _navigateToPage(MpegPlayerPage());
-      }),
-      _buildExampleElementWidget("Subtitles", () {
-        _navigateToPage(SubtitlesPage());
-      }),
-      _buildExampleElementWidget("Picture in Picture", () {
-        _navigateToPage(PictureInPicturePage());
       }),
     ];
   }
