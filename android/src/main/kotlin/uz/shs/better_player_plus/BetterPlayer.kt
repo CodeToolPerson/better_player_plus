@@ -59,6 +59,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.dash.DefaultDashChunkSource
@@ -127,13 +128,16 @@ internal class BetterPlayer(
 
         trackSelector.setParameters(
             trackSelector.buildUponParameters()
-                .setForceHighestSupportedBitrate(false)
+                .setForceHighestSupportedBitrate(true)
                 .setAllowMultipleAdaptiveSelections(true)
+                .setTunnelingEnabled(false) // 🔧 Disable tunnel mode: To avoid screen flickering, black screen, and freezing issues on TV devices (such as Hisense).
                 .build()
         )
 
-        val renderersFactory = DefaultRenderersFactory(context)
-            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+        // Hardware decoding takes precedence; if hardware decoding fails, it automatically downgrades to software decoding.
+        // When the MTK hardware decoder of a Hisense TV fails, it will automatically downgrade to the FFmpeg software decoder.
+        val renderersFactory = NextRenderersFactory(context)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON) // ON = Hardware first, software only if hardware fails
             .setEnableDecoderFallback(true)
 
         exoPlayer = ExoPlayer.Builder(context)
@@ -495,7 +499,10 @@ internal class BetterPlayer(
             C.CONTENT_TYPE_OTHER -> {
                 val extractorsFactory = DefaultExtractorsFactory()
                     .setConstantBitrateSeekingEnabled(true)
-                    .setTsExtractorFlags(DefaultTsPayloadReaderFactory.FLAG_ENABLE_HDMV_DTS_AUDIO_STREAMS)
+                    .setTsExtractorFlags(
+                        DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES and 
+                        DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS
+                    )
                     .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
 
                 val factory = ProgressiveMediaSource.Factory(

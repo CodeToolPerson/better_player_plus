@@ -67,8 +67,4 @@ flutter {
 
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
-    implementation files("libs/decoder_ffmpeg-release.aar")
-    implementation files("libs/decoder_av1-release.aar")
-    implementation files("libs/decoder_iamf-release.aar")
-    implementation files("libs/decoder_mpegh-release.aar")
 }
