@@ -59,7 +59,6 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import io.github.anilbeesetti.nextlib.media3ext.ffdecoder.NextRenderersFactory
 import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.dash.DefaultDashChunkSource
@@ -135,8 +134,8 @@ internal class BetterPlayer(
         )
 
         // Hardware decoding takes precedence; if hardware decoding fails, it automatically downgrades to software decoding.
-        // When the MTK hardware decoder of a Hisense TV fails, it will automatically downgrade to the FFmpeg software decoder.
-        val renderersFactory = NextRenderersFactory(context)
+        // When hardware decoding fails, it will automatically downgrade to the FFmpeg software decoder.
+        val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON) // ON = Hardware first, software only if hardware fails
             .setEnableDecoderFallback(true)
 
