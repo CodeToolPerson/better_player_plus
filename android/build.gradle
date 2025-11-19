@@ -23,12 +23,8 @@ rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }  // 🔧 Add JitPack repository to support nextlib-media3ext
-        // Add flatDir for better_player_plus local AAR
-        if (project.name == 'better_player_plus') {
-            flatDir {
-                dirs "${project(':better_player_plus').projectDir}/libs"
-            }
+        flatDir {
+            dirs project(':better_player_plus').file('libs')
         }
     }
 }
@@ -67,8 +63,6 @@ android {
         implementation "androidx.media3:media3-datasource-cronet:$media3_version"
         implementation "androidx.media3:media3-exoplayer-smoothstreaming:$media3_version"
         compileOnly "androidx.media3:media3-decoder:$media3_version"
-        // Replaced with local FFmpeg AAR that supports 16KB page size
-        // implementation 'com.github.anilbeesetti.nextlib:nextlib-media3ext:v0.8.4'
         implementation(name: 'decoder_ffmpeg-release', ext: 'aar')
         implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common:$lifecycleVersion"

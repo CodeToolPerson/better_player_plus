@@ -134,7 +134,7 @@ internal class BetterPlayer(
         )
 
         // Hardware decoding takes precedence; if hardware decoding fails, it automatically downgrades to software decoding.
-        // When hardware decoding fails, it will automatically downgrade to the FFmpeg software decoder.
+        // When the MTK hardware decoder fails, it will automatically downgrade to the FFmpeg software decoder.
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON) // ON = Hardware first, software only if hardware fails
             .setEnableDecoderFallback(true)
