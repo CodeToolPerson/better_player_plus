@@ -51,12 +51,6 @@ android {
         minSdkVersion 21
     }
 
-    repositories {
-        flatDir {
-            dirs "${project.projectDir}/libs"
-        }
-    }
-
     dependencies {
         implementation "androidx.media:media:1.7.0"
         implementation "androidx.media3:media3-ui:$media3_version"
