@@ -24,9 +24,6 @@ rootProject.allprojects {
         google()
         mavenCentral()
         maven { url 'https://jitpack.io' }  // 🔧 Add JitPack repository to support nextlib-media3ext
-        flatDir {
-            dirs 'libs'
-        }
     }
 }
 
@@ -52,6 +49,12 @@ android {
 
     defaultConfig {
         minSdkVersion 21
+    }
+
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
     }
 
     dependencies {
