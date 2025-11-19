@@ -53,7 +53,7 @@ android {
 
     repositories {
         flatDir {
-            dirs 'libs'
+            dirs "${project.projectDir}/libs"
         }
     }
 
