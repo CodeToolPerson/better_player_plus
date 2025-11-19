@@ -61,7 +61,9 @@ android {
         implementation "androidx.media3:media3-datasource-cronet:$media3_version"
         implementation "androidx.media3:media3-exoplayer-smoothstreaming:$media3_version"
         compileOnly "androidx.media3:media3-decoder:$media3_version"
-        implementation 'com.github.anilbeesetti.nextlib:nextlib-media3ext:v0.8.4'
+        // Replaced with local FFmpeg AAR that supports 16KB page size
+        // implementation 'com.github.anilbeesetti.nextlib:nextlib-media3ext:v0.8.4'
+        implementation files('libs/decoder_ffmpeg-release.aar')
         implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common:$lifecycleVersion"
         implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycleVersion"
