@@ -24,6 +24,12 @@ rootProject.allprojects {
         google()
         mavenCentral()
         maven { url 'https://jitpack.io' }  // 🔧 Add JitPack repository to support nextlib-media3ext
+        // Add flatDir for better_player_plus local AAR
+        if (project.name == 'better_player_plus') {
+            flatDir {
+                dirs "${project(':better_player_plus').projectDir}/libs"
+            }
+        }
     }
 }
 
